@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Torrent Streamer</title>
+  <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+</head>
+<body>
+  <h1>🌀 Torrent Video Streamer</h1>
+
+  <label>Choose a website (currently unused, for show):</label>
+  <input type="text" id="site" placeholder="yts.mx" />
+
+  <br><br>
+
+  <label>Search query:</label>
+  <input type="text" id="query" placeholder="Iron Man 2008" />
+  <button onclick="fakeSearch()">Search</button>
+
+  <div id="results"></div>
+  <div id="player" style="margin-top:20px;"></div>
+
+  <script>
+    const client = new WebTorrent();
+
+    function fakeSearch() {
+      const query = document.getElementById("query").value.toLowerCase();
+      const results = document.getElementById("results");
+      results.innerHTML = "";
+
+      // Placeholder magnet links for demo
+      const torrents = {
+        "Iron Man 2008": "magnet:?xt=urn:btih:08ADA4F43FAB61A22FB107D4BF13A8A7A16B5C61&dn=Big+Buck+Bunny&tr=udp://tracker.openbittorrent.com:80",
+      };
+
+      if (torrents[query]) {
+        results.innerHTML = `
+          <p>Found: ${query}</p>
+          <button onclick="streamTorrent('${torrents[query]}')">▶️ Stream</button>
+        `;
+      } else {
+        results.innerHTML = "<p>No demo torrent found for that search (yet).</p>";
+      }
+    }
+
+    function streamTorrent(magnetURI) {
+      const player = document.getElementById("player");
+      player.innerHTML = "<p>Loading torrent...</p>";
+
+      client.add(magnetURI, function (torrent) {
+        const file = torrent.files.find(file => file.name.endsWith('.mp4') || file.name.endsWith('.webm'));
+
+        if (file) {
+          file.appendTo(player, { autoplay: true });
+        } else {
+          player.innerHTML = "No playable video file found in this torrent.";
+        }
+      });
+    }
+  </script>
+</body>
+</html>
