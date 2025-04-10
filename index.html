@@ -2,52 +2,104 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Video Torrent Streamer</title>
+  <title>Torrent Scraper & Video Streamer</title>
   <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #4CAF50; }
+    #results { margin-top: 20px; }
+    .torrent-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+    .torrent-item button { margin-top: 10px; }
+  </style>
 </head>
 <body>
-  <h1>🌀 Torrent Video Streamer</h1>
+  <h1>🌀 Torrent Video Streamer (Scraper)</h1>
 
-  <label>Choose a website (currently unused, for show):</label>
-  <input type="text" id="site" placeholder="yts.mx" />
+  <label for="site">Enter Torrent Site URL:</label>
+  <input type="text" id="site" placeholder="e.g. https://thepiratebay.org" />
 
-  <br><br>
-
-  <label>Search query:</label>
-  <input type="text" id="query" placeholder="Iron Man 2008" />
-  <button onclick="fakeSearch()">Search</button>
+  <label for="query">Search query:</label>
+  <input type="text" id="query" placeholder="e.g. big buck bunny" />
+  
+  <button onclick="scrapeTorrents()">Scrape Torrents</button>
 
   <div id="results"></div>
-  <div id="player" style="margin-top:20px;"></div>
+  <div id="player" style="margin-top: 20px;"></div>
 
   <script>
     const client = new WebTorrent();
 
-    function fakeSearch() {
-      const query = document.getElementById("query").value.toLowerCase();
-      const results = document.getElementById("results");
-      results.innerHTML = "";
+    // Use a free CORS proxy (you can host your own or use public ones)
+    const corsProxy = "https://api.allorigins.win/raw?url=";
 
-      // Placeholder magnet links for demo
-      const torrents = {
-        "Iron Man 2008": "magnet:?xt=urn:btih:08ADA4F43FAB61A22FB107D4BF13A8A7A16B5C61&dn=Big+Buck+Bunny&tr=udp://tracker.openbittorrent.com:80",
-      };
+    function scrapeTorrents() {
+      const site = document.getElementById("site").value;
+      const query = document.getElementById("query").value;
+      const resultsDiv = document.getElementById("results");
 
-      if (torrents[query]) {
-        results.innerHTML = `
-          <p>Found: ${query}</p>
-          <button onclick="streamTorrent('${torrents[query]}')">▶️ Stream</button>
-        `;
-      } else {
-        results.innerHTML = "<p>No demo torrent found for that search (yet).</p>";
+      if (!site || !query) {
+        resultsDiv.innerHTML = "Please enter both site URL and search query.";
+        return;
       }
+
+      resultsDiv.innerHTML = "Scraping torrents...";
+
+      // Use the CORS proxy to bypass CORS restrictions
+      const targetUrl = encodeURIComponent(`${site}/search/${encodeURIComponent(query)}`);
+      const proxyUrl = corsProxy + targetUrl;
+
+      fetch(proxyUrl)
+        .then(response => response.text())
+        .then(data => {
+          // Simulated scraping logic (you'll need to adjust selectors based on real site structure)
+          const torrents = parseTorrents(data);
+
+          if (torrents.length > 0) {
+            let torrentsHTML = "<h3>Found Torrents:</h3>";
+            torrents.forEach(torrent => {
+              torrentsHTML += `
+                <div class="torrent-item">
+                  <h4>${torrent.title}</h4>
+                  <p>${torrent.description}</p>
+                  <button onclick="playTorrent('${torrent.magnet}')">▶️ Stream ${torrent.title}</button>
+                </div>
+              `;
+            });
+            resultsDiv.innerHTML = torrentsHTML;
+          } else {
+            resultsDiv.innerHTML = "<p>No torrents found for that search.</p>";
+          }
+        })
+        .catch(error => {
+          resultsDiv.innerHTML = "<p>Error while scraping torrents.</p>";
+          console.error(error);
+        });
     }
 
-    function streamTorrent(magnetURI) {
+    // Fake parse function, to simulate extracting data from raw HTML
+    function parseTorrents(data) {
+      const torrents = [];
+      
+      // Example: pretend we are scraping a site like 'The Pirate Bay'
+      // You will need to adjust this based on the actual HTML structure of the site you're scraping
+      const regex = /<a href="(magnet:[^"]+)">([^<]+)<\/a>/g;
+      let match;
+      while (match = regex.exec(data)) {
+        torrents.push({
+          title: match[2],
+          magnet: match[1],
+          description: 'A sample description for the torrent.'
+        });
+      }
+      return torrents;
+    }
+
+    // Play the torrent using WebTorrent
+    function playTorrent(magnetURI) {
       const player = document.getElementById("player");
       player.innerHTML = "<p>Loading torrent...</p>";
 
-      client.add(magnetURI, function (torrent) {
+      client.add(magnetURI, function(torrent) {
         const file = torrent.files.find(file => file.name.endsWith('.mp4') || file.name.endsWith('.webm'));
 
         if (file) {
